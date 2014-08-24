@@ -23,16 +23,17 @@ class AutoMandate
     mandates.each do |mandate|
       if @mandates[mandate.timeout_limit.to_s].nil?
         puts "submitting mandate for #{mandate.timeout_limit}"
-        material = nil
+        material = "rock"
         type = mandate.item_type.to_s
         case mandate.item_type
         when :AMULET, :RING
-          material = "rock"
           type = "crafts"
         when :BACKPACK
           material = "leather"
-        else
-          material = "rock"
+        when :CHAIR
+          type = "throne"
+        when :COIN
+          material = "metal"
         end
         command =  "submit_order #{type} #{mandate.timeout_limit} #{material}"
         puts command

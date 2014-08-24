@@ -8,6 +8,10 @@ materials = {
         adjective = "rock",
         management = {mat_type = 0},
     },
+    metal = {
+        adjective = "metal",
+        management = {mat_type = 0, mat_index = 3}, -- copper for now
+    }
 }
 
 for _, name in ipairs{"wood", "cloth", "leather", "silk", "yarn", "bone", "shell", "tooth", "horn", "pearl"} do

@@ -48,6 +48,7 @@ args = {...}
 opt = args[1]
 mandate_id = args[2]
 material = args[3] or 'stone'
+number = args[4] or 1
 print(opt)
 print(mandate_id)
 if opt == nil then
@@ -74,8 +75,8 @@ local new_order = df.manager_order:new()
     }
 
 new_order:assign(materials[material].management)
-new_order.amount_left = 1
-new_order.amount_total = 1
+new_order.amount_left = number
+new_order.amount_total = number
 new_order.is_validated = 0
 df.global.world.manager_orders:insert('#', new_order)
 dfhack.run_command("automandate update " .. mandate_id)

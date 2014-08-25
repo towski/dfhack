@@ -25,6 +25,7 @@ class AutoMandate
         puts "submitting mandate for #{mandate.timeout_limit}"
         material = "rock"
         type = mandate.item_type.to_s
+        number = mandate.amount_remaining
         case mandate.item_type
         when :AMULET, :RING
           type = "crafts"
@@ -35,7 +36,7 @@ class AutoMandate
         when :COIN
           material = "metal"
         end
-        command =  "submit_order #{type} #{mandate.timeout_limit} #{material}"
+        command =  "submit_order #{type} #{mandate.timeout_limit} #{material} #{number}"
         puts command
         df.dfhack_run command
       end

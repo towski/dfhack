@@ -1,8 +1,7 @@
 class AutoMandate
   def initialize
-    @thresholds = Hash.new(50)
-    @lastcounts = Hash.new(0)
-    @mandates = Hash.new
+    @mandates = []
+    set_mandates
   end
 
   def setdefault(v)
@@ -13,15 +12,20 @@ class AutoMandate
     mandates = df.world.mandates.select do |mandate|
       mandate.mode == 1
     end
-    @before_jobs = df.world.manager_orders.map{|o| o._memaddr }
-    @mandates.each do |key, value|
-      if !@before_jobs.include?(value)
-        puts "Removing mandate #{key} with job #{value}"
-        @mandates.delete key
+    # we store our data in the hist_figure_id field
+    before_orders = df.world.manager_orders
+    @mandates.each do |mandate_id|
+      puts "before orders"
+      puts before_orders.inspect
+      order = before_orders.find{|o| o.hist_figure_id }
+      if order.nil?
+        puts "Removing mandate #{mandate_id}"
+        @mandates.delete mandate_id
       end
     end
+    @before_orders = before_orders.map{|o| o._memaddr }
     mandates.each do |mandate|
-      if @mandates[mandate.timeout_limit.to_s].nil?
+      if !@mandates.include?(mandate.timeout_limit)
         puts "submitting mandate for #{mandate.timeout_limit}"
         material = "rock"
         type = mandate.item_type.to_s
@@ -43,13 +47,22 @@ class AutoMandate
     end
   end
 
+  def set_mandates
+    @mandates = df.world.manager_orders.select do |order|
+      order.hist_figure_id != -1
+    end.map{|o| o.hist_figure_id }
+  end
+
   def update(mandate_id)
-    after_jobs = df.world.manager_orders.map{|o| o._memaddr }
-    jobs = after_jobs - @before_jobs
-    @before_jobs = after_jobs
-    if jobs.length == 1
-      puts "setting job #{mandate_id} #{jobs.first}"
-      @mandates[mandate_id] = jobs.first
+    after_orders = df.world.manager_orders.map{|o| o._memaddr }
+    orders = after_orders - @before_orders
+    @before_orders = after_orders
+    if orders.length == 1
+      order_id = orders.first
+      puts "setting job #{mandate_id} #{orders.first}"
+      @mandates << mandate_id.to_i
+      order = df.world.manager_orders.find{|o| o._memaddr == order_id }
+      order.hist_figure_id = mandate_id.to_i
     end
   end
 
@@ -79,12 +92,22 @@ class AutoMandate
   end
 end
 
-$AutoMandate ||= AutoMandate.new
-
 case $script_args[0]
-when 'start', 'enable'
-  $AutoMandate.start
-  puts $AutoMandate.status
+when 'enable' 
+  df.onstatechange_register_once { |st|
+    puts st
+    if st == :MAP_LOADED
+      $AutoMandate = AutoMandate.new
+      $AutoMandate.start
+    elsif st == :MAP_UNLOADED
+      $AutoMandate.stop
+    end
+  }
+when 'start' 
+  if $AutoMandate
+    $AutoMandate.start
+    puts $AutoMandate.status
+  end
 
 when 'update'
   $AutoMandate.update $script_args[1]
@@ -93,11 +116,11 @@ when 'end', 'stop', 'disable'
   $AutoMandate.stop
   puts 'Stopped.'
 
-when 'default'
-  $AutoMandate.setdefault($script_args[1])
-
 when 'status'
-  puts $AutoMandate.status()
+  puts $AutoMandate.status
+
+when 'set_mandates'
+  $AutoMandate.set_mandates($script_args[1])
 
 when 'delete'
   $AutoMandate.stop
@@ -112,7 +135,7 @@ Usage:
  automandate default 30
 EOS
 
-else
+when 'process'
   $AutoMandate.process
   puts $AutoMandate.status
 end

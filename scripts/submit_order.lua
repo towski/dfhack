@@ -1,7 +1,7 @@
 local gui = require "gui"
 local utils = require "utils"
 local table = require "table"
-local stockflow = require 'plugins.stockflow'
+-- local stockflow = require 'plugins.stockflow'
 
 materials = {
     rock = {
@@ -25,8 +25,6 @@ materials.wood.adjective = "wooden"
 materials.tooth.adjective = "ivory/tooth"
 materials.leather.clothing_flag = "LEATHER"
 
-print(materials['rock'])
-
 MAX_JOB_ID = 231
 
 function getJobType(tbl, value)
@@ -45,13 +43,12 @@ function getJobType(tbl, value)
 end
 
 args = {...}
-opt = args[1]
+search_string = args[1]
 mandate_id = args[2]
 material = args[3] or 'stone'
 number = args[4] or 1
-print(opt)
 print(mandate_id)
-if opt == nil then
+if search_string == nil then
   print("First parameter must be a string for job creation")
   return
 end
@@ -59,9 +56,9 @@ if material == nil then
   print("Needs material")
 end
 
-local job = getJobType(df.job_type.attrs, opt:lower())
+local job = getJobType(df.job_type.attrs, search_string:lower())
 if job == nil or job == 0 then
-  print("No job found for '" .. opt .."'")
+  print("No job found for '" .. search_string .."'")
   return
 end
 

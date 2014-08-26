@@ -15,18 +15,16 @@ class AutoMandate
     # we store our data in the hist_figure_id field
     before_orders = df.world.manager_orders
     @mandates.each do |mandate_id|
-      puts "before orders"
-      puts before_orders.inspect
       order = before_orders.find{|o| o.hist_figure_id }
       if order.nil?
-        puts "Removing mandate #{mandate_id}"
+        puts "Removing finished order for mandate #{mandate_id}"
         @mandates.delete mandate_id
       end
     end
     @before_orders = before_orders.map{|o| o._memaddr }
     mandates.each do |mandate|
       if !@mandates.include?(mandate.timeout_limit)
-        puts "submitting mandate for #{mandate.timeout_limit}"
+        puts "Submitting order for mandate #{mandate.timeout_limit}"
         material = "rock"
         type = mandate.item_type.to_s
         number = mandate.amount_remaining
@@ -41,7 +39,6 @@ class AutoMandate
           material = "metal"
         end
         command =  "submit_order #{type} #{mandate.timeout_limit} #{material} #{number}"
-        puts command
         df.dfhack_run command
       end
     end
@@ -59,7 +56,7 @@ class AutoMandate
     @before_orders = after_orders
     if orders.length == 1
       order_id = orders.first
-      puts "setting job #{mandate_id} #{orders.first}"
+      puts "Created job #{orders.first} for mandate #{mandate_id}"
       @mandates << mandate_id.to_i
       order = df.world.manager_orders.find{|o| o._memaddr == order_id }
       order.hist_figure_id = mandate_id.to_i
@@ -67,7 +64,6 @@ class AutoMandate
   end
 
   def process
-    puts "Finding mandates"
     find_mandates
     return unless @running
   end
@@ -95,7 +91,6 @@ end
 case $script_args[0]
 when 'enable' 
   df.onstatechange_register_once { |st|
-    puts st
     if st == :MAP_LOADED
       $AutoMandate = AutoMandate.new
       $AutoMandate.start

@@ -21,6 +21,7 @@
 #include "df/viewscreen_unitlistst.h"
 #include "df/interface_key.h"
 #include "df/unit.h"
+#include "df/job.h"
 #include "df/unit_soul.h"
 #include "df/unit_skill.h"
 #include "df/creature_graphics_role.h"
@@ -370,6 +371,7 @@ enum display_columns {
     DISP_COLUMN_HAPPINESS,
     DISP_COLUMN_NAME,
     DISP_COLUMN_PROFESSION_OR_SQUAD,
+    DISP_COLUMN_DOING,
     DISP_COLUMN_LABORS,
     DISP_COLUMN_MAX,
 };
@@ -513,6 +515,8 @@ void viewscreen_unitlaborsst::calcSize()
     col_maxwidth[DISP_COLUMN_HAPPINESS] = 4;
     col_minwidth[DISP_COLUMN_NAME] = 16;
     col_maxwidth[DISP_COLUMN_NAME] = 16;        // adjusted in the loop below
+    col_minwidth[DISP_COLUMN_DOING] = 16;
+    col_maxwidth[DISP_COLUMN_DOING] = 16;        // adjusted in the loop below
     col_minwidth[DISP_COLUMN_PROFESSION_OR_SQUAD] = 10;
     col_maxwidth[DISP_COLUMN_PROFESSION_OR_SQUAD] = 10;  // adjusted in the loop below
     col_minwidth[DISP_COLUMN_LABORS] = num_columns*3/5;     // 60%
@@ -1003,6 +1007,7 @@ void viewscreen_unitlaborsst::render()
     Screen::paintString(Screen::Pen(' ', 7, 0), col_offsets[DISP_COLUMN_HAPPINESS], 2, "Hap.");
     Screen::paintString(Screen::Pen(' ', 7, 0), col_offsets[DISP_COLUMN_NAME], 2, "Name");
     Screen::paintString(Screen::Pen(' ', 7, 0), col_offsets[DISP_COLUMN_PROFESSION_OR_SQUAD], 2, show_squad ? "Squad" : "Profession");
+    Screen::paintString(Screen::Pen(' ', 7, 0), col_offsets[DISP_COLUMN_DOING], 2, "Doing");
 
     for (int col = 0; col < col_widths[DISP_COLUMN_LABORS]; col++)
     {
@@ -1083,6 +1088,14 @@ void viewscreen_unitlaborsst::render()
         }
         profession_or_squad.resize(col_widths[DISP_COLUMN_PROFESSION_OR_SQUAD]);
         Screen::paintString(Screen::Pen(' ', fg, bg), col_offsets[DISP_COLUMN_PROFESSION_OR_SQUAD], 4 + row, profession_or_squad);
+
+        string doing = "";
+        if(cur->unit->job.current_job != 0){
+                doing = ENUM_KEY_STR(job_type, cur->unit->job.current_job->job_type);
+        }
+        //Core::print(stl_sprintf("%s %d \n", "turl", cur->unit->job.current_job->job_type).c_str());
+        doing.resize(col_widths[DISP_COLUMN_DOING]);
+        Screen::paintString(Screen::Pen(' ', fg, bg), col_offsets[DISP_COLUMN_DOING], 4 + row, doing);
 
         // Print unit's skills and labor assignments
         for (int col = 0; col < col_widths[DISP_COLUMN_LABORS]; col++)

@@ -901,6 +901,16 @@ DFhackCExport command_result plugin_onupdate(color_ostream &out)
     return CR_OK;
 }
 
+static int makePlannedBuilding(lua_State* l)
+{
+        auto type = ui_build_selector->building_type;
+        planner.allocatePlannedBuilding(type);
+}
+DFHACK_PLUGIN_LUA_COMMANDS{
+    DFHACK_LUA_COMMAND(makePlannedBuilding),
+    DFHACK_LUA_END
+};
+
 //START Viewscreen Hook
 struct buildingplan_hook : public df::viewscreen_dwarfmodest
 {

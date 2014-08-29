@@ -28,8 +28,20 @@ while str do
       building_type = 14
     elseif char == 'b' then
       building_type = 1
-    elseif char == 'D' then
+    elseif char == 'd' then
       building_type = 8
+    elseif char == 'c' then
+      building_type = 0
+    elseif char == 't' then
+      building_type = 2
+    elseif char == 'h' then
+      building_type = 10
+    elseif char == 'R' then
+      building_type = 45
+    elseif char == 'n' then
+      building_type = 3
+    elseif char == 'v' then
+      building_type = 27
     end
     if building_type then
       df.global.ui_build_selector.building_type = building_type

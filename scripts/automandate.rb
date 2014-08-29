@@ -29,7 +29,7 @@ class AutoMandate
         type = mandate.item_type.to_s
         number = mandate.amount_remaining
         case mandate.item_type
-        when :AMULET, :RING
+        when :AMULET, :RING, :FIGURINE
           type = "crafts"
         when :BACKPACK
           material = "leather"
@@ -88,16 +88,18 @@ class AutoMandate
   end
 end
 
+df.onstatechange_register_once { |st|
+  if st == :MAP_LOADED
+    $AutoMandate = AutoMandate.new
+    $AutoMandate.start
+  end
+}
+
 case $script_args[0]
 when 'enable' 
-  df.onstatechange_register_once { |st|
-    if st == :MAP_LOADED
-      $AutoMandate = AutoMandate.new
-      $AutoMandate.start
-    elsif st == :MAP_UNLOADED
-      $AutoMandate.stop
-    end
-  }
+  if $AutoMandate.nil?
+    $AutoMandate = AutoMandate.new
+  end
 when 'start' 
   if $AutoMandate
     $AutoMandate.start

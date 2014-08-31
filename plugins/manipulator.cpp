@@ -76,9 +76,6 @@ const SkillLevel skill_levels[] = {
     {"Legendary+5",    0, 'Z'}
 };
 
-bool currently_displayed = false; 
-int old_altsort = 0; 
-
 struct SkillColumn
 {
     int group; // for navigation and mass toggling
@@ -276,8 +273,12 @@ enum altsort_mode {
     ALTSORT_PROFESSION_OR_SQUAD,
     ALTSORT_HAPPINESS,
     ALTSORT_ARRIVAL,
+    ALTSORT_SKILL,
     ALTSORT_MAX
 };
+
+altsort_mode old_altsort = ALTSORT_MAX; 
+int old_sel_column = 0;
 
 bool descending;
 df::job_skill sort_skill;
@@ -391,6 +392,7 @@ public:
 
     void render();
     void resize(int w, int h) { calcSize(); }
+    void sortUnits(altsort_mode);
 
     void help() { }
 
@@ -456,11 +458,19 @@ viewscreen_unitlaborsst::viewscreen_unitlaborsst(vector<df::unit*> &src, int cur
 
         units.push_back(cur);
     }
-    altsort = ALTSORT_NAME;
     show_squad = false;
     first_column = sel_column = 0;
+    sel_column = old_sel_column;
 
     refreshNames();
+    if(old_altsort != ALTSORT_MAX){
+        sortUnits(old_altsort);
+        if(old_altsort == ALTSORT_SKILL){
+            altsort = ALTSORT_NAME; 
+        } else {
+            altsort = old_altsort; 
+        }
+    }
 
     first_row = 0;
     sel_row = cursor_pos;
@@ -639,7 +649,7 @@ void viewscreen_unitlaborsst::feed(set<df::interface_key> *events)
     bool leave_all = events->count(interface_key::LEAVESCREEN_ALL);
     if (leave_all || events->count(interface_key::LEAVESCREEN))
     {
-        currently_displayed = false;
+        old_sel_column = sel_column;
         events->clear();
         Screen::dismiss(this);
         if (leave_all)
@@ -755,7 +765,7 @@ void viewscreen_unitlaborsst::feed(set<df::interface_key> *events)
 
     int input_row = sel_row;
     int input_column = sel_column;
-    int input_sort = altsort;
+    altsort_mode input_sort = altsort;
 
     // Translate mouse input to appropriate keyboard input
     if (enabler->tracking_on && gps->mouse_x != -1 && gps->mouse_y != -1)
@@ -925,29 +935,13 @@ void viewscreen_unitlaborsst::feed(set<df::interface_key> *events)
         descending = events->count(interface_key::SECONDSCROLL_UP);
         sort_skill = columns[input_column].skill;
         sort_labor = columns[input_column].labor;
-        std::sort(units.begin(), units.end(), sortBySkill);
-        old_altsort = 10;
+        sortUnits(ALTSORT_SKILL);
     }
 
     if (events->count(interface_key::SECONDSCROLL_PAGEUP) || events->count(interface_key::SECONDSCROLL_PAGEDOWN))
     {
         descending = events->count(interface_key::SECONDSCROLL_PAGEUP);
-        switch (input_sort)
-        {
-        case ALTSORT_NAME:
-            std::sort(units.begin(), units.end(), sortByName);
-            break;
-        case ALTSORT_PROFESSION_OR_SQUAD:
-            std::sort(units.begin(), units.end(), show_squad ? sortBySquad : sortByProfession);
-            break;
-        case ALTSORT_HAPPINESS:
-            std::sort(units.begin(), units.end(), sortByHappiness);
-            break;
-        case ALTSORT_ARRIVAL:
-            std::sort(units.begin(), units.end(), sortByArrival);
-            break;
-        }
-        old_altsort = altsort;
+        sortUnits(input_sort);
     }
     if (events->count(interface_key::CHANGETAB))
     {
@@ -966,7 +960,6 @@ void viewscreen_unitlaborsst::feed(set<df::interface_key> *events)
             altsort = ALTSORT_NAME;
             break;
         }
-        old_altsort = altsort;
     }
     if (events->count(interface_key::OPTION20))
     {
@@ -994,6 +987,28 @@ void viewscreen_unitlaborsst::feed(set<df::interface_key> *events)
     }
 }
 
+void viewscreen_unitlaborsst::sortUnits(altsort_mode input_sort){
+    switch (input_sort)
+    {
+    case ALTSORT_NAME:
+        std::sort(units.begin(), units.end(), sortByName);
+        break;
+    case ALTSORT_PROFESSION_OR_SQUAD:
+        std::sort(units.begin(), units.end(), show_squad ? sortBySquad : sortByProfession);
+        break;
+    case ALTSORT_HAPPINESS:
+        std::sort(units.begin(), units.end(), sortByHappiness);
+        break;
+    case ALTSORT_ARRIVAL:
+        std::sort(units.begin(), units.end(), sortByArrival);
+        break;
+    case ALTSORT_SKILL:
+        std::sort(units.begin(), units.end(), sortBySkill);
+        break;
+    }
+    old_altsort = input_sort;
+}
+
 void OutputString(int8_t color, int &x, int y, const std::string &text)
 {
     Screen::paintString(Screen::Pen(' ', color, 0), x, y, text);
@@ -1005,26 +1020,6 @@ void viewscreen_unitlaborsst::render()
         return;
 
     dfhack_viewscreen::render();
-    if(!currently_displayed){
-        switch (old_altsort)
-        {
-        case ALTSORT_NAME:
-            std::sort(units.begin(), units.end(), sortByName);
-            break;
-        case ALTSORT_PROFESSION_OR_SQUAD:
-            std::sort(units.begin(), units.end(), show_squad ? sortBySquad : sortByProfession);
-            break;
-        case ALTSORT_HAPPINESS:
-            std::sort(units.begin(), units.end(), sortByHappiness);
-            break;
-        case ALTSORT_ARRIVAL:
-            std::sort(units.begin(), units.end(), sortByArrival);
-            break;
-        default:
-            std::sort(units.begin(), units.end(), sortBySkill);
-        }
-        currently_displayed = true;
-    }
 
     auto dim = Screen::getWindowSize();
 

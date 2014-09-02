@@ -21,6 +21,8 @@
 #include "df/viewscreen_unitlistst.h"
 #include "df/interface_key.h"
 #include "df/unit.h"
+#include "df/squad.h"
+#include "df/squad_position.h"
 #include "df/job.h"
 #include "df/unit_soul.h"
 #include "df/unit_skill.h"
@@ -102,12 +104,12 @@ struct SkillColumn
 // All of the skill/labor columns we want to display.
 const SkillColumn columns[] = {
 // Mining
-    {1, 8, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::STRENGTH, "St"},
-    {1, 8, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::AGILITY, "Ag"},
-    {1, 8, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::TOUGHNESS, "To"},
-    {1, 8, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::ENDURANCE, "En"},
-    {1, 8, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::RECUPERATION, "Re"},
-    {1, 8, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::DISEASE_RESISTANCE, "Di"},
+    {1, 2, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::STRENGTH, "St"},
+    {1, 2, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::AGILITY, "Ag"},
+    {1, 2, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::TOUGHNESS, "To"},
+    {1, 2, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::ENDURANCE, "En"},
+    {1, 2, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::RECUPERATION, "Re"},
+    {1, 2, profession::NONE, unit_labor::NONE, job_skill::NONE, physical_attribute_type::DISEASE_RESISTANCE, "Di"},
 // Military - Misc
     {15, 8, profession::NONE, unit_labor::NONE, job_skill::DISCIPLINE, physical_attribute_type::STRENGTH, "Di"},
     {15, 8, profession::NONE, unit_labor::NONE, job_skill::LEADERSHIP, physical_attribute_type::STRENGTH, "Ld"},
@@ -274,6 +276,7 @@ enum display_columns {
     DISP_COLUMN_NAME,
     DISP_COLUMN_PROFESSION_OR_SQUAD,
     DISP_COLUMN_DOING,
+    DISP_COLUMN_SQUADS,
     DISP_COLUMN_LABORS,
     DISP_COLUMN_MAX,
 };
@@ -314,6 +317,9 @@ protected:
 
     void refreshNames();
     void calcSize ();
+
+    std::vector<df::squad*> dwarf_squads;
+    std::vector<df::squad*>::iterator it2;
 };
 
 viewscreen_unitlaborsst::viewscreen_unitlaborsst(vector<df::unit*> &src, int cursor_pos)
@@ -322,6 +328,11 @@ viewscreen_unitlaborsst::viewscreen_unitlaborsst(vector<df::unit*> &src, int cur
     auto &active = world->units.active;
     for (size_t i = 0; i < active.size(); i++)
         active_idx[active[i]] = i;
+
+
+    std::set<int> myset;
+    std::set<int>::iterator it;
+    it = myset.begin();
 
     for (size_t i = 0; i < src.size(); i++)
     {
@@ -351,10 +362,42 @@ viewscreen_unitlaborsst::viewscreen_unitlaborsst(vector<df::unit*> &src, int cur
         if (!ENUM_ATTR(profession, can_assign_labor, unit->profession))
             cur->allowEdit = false;
 
+        if(unit->civ_id == ui->civ_id){
+            int msquad_id = unit->military.squad_id ;
+            if(msquad_id > 0 && msquad_id < 100000){
+                myset.insert(it, unit->military.squad_id);
+                it++;
+            }
+        }
+
         cur->color = Units::getProfessionColor(unit);
 
-        units.push_back(cur);
+        if(unit->profession != df::profession::BABY && unit->profession != df::profession::CHILD){
+            units.push_back(cur);
+        }
     }
+
+
+    for (it=myset.begin(); it!=myset.end(); ++it){
+        it2 = dwarf_squads.begin();
+        dwarf_squads.insert(it2, df::squad::find(*it));
+    }
+
+    //for (it2=dwarf_squads.begin(); it2!=dwarf_squads.end(); ++it2){
+    //    Core::print(stl_sprintf("hey got 1\n").c_str());
+    //}
+    //{
+    //    auto squad = dwarf_squads[si];
+    //    if(df.world. == squad->id){
+    //    }
+    //    //uint8_t c = 0xFA;
+    //    //fg = 15;
+    //    //if(cur->unit->military.squad_id == squad->id){
+    //    //bg = 0;
+    //    //    c = 0xFB;
+    //    //}
+    //}
+
     altsort = ALTSORT_NAME;
     show_squad = true;
     first_column = sel_column = 0;
@@ -421,6 +464,8 @@ void viewscreen_unitlaborsst::calcSize()
     col_maxwidth[DISP_COLUMN_DOING] = 16;        // adjusted in the loop below
     col_minwidth[DISP_COLUMN_PROFESSION_OR_SQUAD] = 10;
     col_maxwidth[DISP_COLUMN_PROFESSION_OR_SQUAD] = 10;  // adjusted in the loop below
+    col_minwidth[DISP_COLUMN_SQUADS] = 4;
+    col_maxwidth[DISP_COLUMN_SQUADS] = 4;
     col_minwidth[DISP_COLUMN_LABORS] = num_columns*3/5;     // 60%
     col_maxwidth[DISP_COLUMN_LABORS] = NUM_COLUMNS;
 
@@ -457,7 +502,7 @@ void viewscreen_unitlaborsst::calcSize()
 
             if (i < DISP_COLUMN_MAX-1)
             {
-                col_widths[i] += col_margin;
+                //col_widths[i] += col_margin;
 
                 if (col_margin_r)
                 {
@@ -772,50 +817,54 @@ void viewscreen_unitlaborsst::feed(set<df::interface_key> *events)
     }
 
     UnitInfo *cur = units[input_row];
-    if (events->count(interface_key::SELECT) && (cur->allowEdit) && columns[input_column].isValidLabor(ui->main.fortress_entity))
+    if (events->count(interface_key::SELECT)) // && (cur->allowEdit) && columns[input_column].isValidLabor(ui->main.fortress_entity))
     {
+        //df::unit *unit = cur->unit;
+        //const SkillColumn &col = columns[input_column];
+        //bool newstatus = !unit->status.labors[col.labor];
+        //if (col.special)
+        //{
+        //    if (newstatus)
+        //    {
+        //        for (int i = 0; i < NUM_COLUMNS; i++)
+        //        {
+        //            if ((columns[i].labor != unit_labor::NONE) && columns[i].special)
+        //                unit->status.labors[columns[i].labor] = false;
+        //        }
+        //    }
+        //    unit->military.pickup_flags.bits.update = true;
+        //}
+        //unit->status.labors[col.labor] = newstatus;
         df::unit *unit = cur->unit;
-        const SkillColumn &col = columns[input_column];
-        bool newstatus = !unit->status.labors[col.labor];
-        if (col.special)
-        {
-            if (newstatus)
-            {
-                for (int i = 0; i < NUM_COLUMNS; i++)
-                {
-                    if ((columns[i].labor != unit_labor::NONE) && columns[i].special)
-                        unit->status.labors[columns[i].labor] = false;
+        df::squad *squad = dwarf_squads.at(sel_column);
+        if(unit->military.squad_id == -1){
+            int next_open_position = -1;
+            for (int i = 0; i < 10; i++){
+                if(squad->positions[i]->occupant == -1){
+                    next_open_position = i;
+                    break;
                 }
             }
-            unit->military.pickup_flags.bits.update = true;
-        }
-        unit->status.labors[col.labor] = newstatus;
-    }
-    if (events->count(interface_key::SELECT_ALL) && (cur->allowEdit) && columns[input_column].isValidLabor(ui->main.fortress_entity))
-    {
-        df::unit *unit = cur->unit;
-        const SkillColumn &col = columns[input_column];
-        bool newstatus = !unit->status.labors[col.labor];
-        for (int i = 0; i < NUM_COLUMNS; i++)
-        {
-            if (columns[i].group != col.group)
-                continue;
-            if (!columns[i].isValidLabor(ui->main.fortress_entity))
-                continue;
-            if (columns[i].special)
-            {
-                if (newstatus)
-                {
-                    for (int j = 0; j < NUM_COLUMNS; j++)
-                    {
-                        if ((columns[j].labor != unit_labor::NONE) && columns[j].special)
-                            unit->status.labors[columns[j].labor] = false;
-                    }
-                }
+            if(next_open_position != -1){
                 unit->military.pickup_flags.bits.update = true;
+                unit->military.squad_id = squad->id;
+                unit->military.squad_position = next_open_position;
+                squad->positions[next_open_position]->occupant = unit->hist_figure_id;
             }
-            unit->status.labors[columns[i].labor] = newstatus;
+        } else {
+            for (int i = 0; i < 10; i++){
+                if(squad->positions[i]->occupant == unit->hist_figure_id){
+                    unit->military.pickup_flags.bits.update = true;
+                    squad->positions[i]->occupant = -1;
+                    unit->military.squad_id = -1;
+                    break;
+                }
+            }
         }
+    }
+    if (events->count(interface_key::SELECT_ALL))
+    {
+        //columns[input_column]
     }
 
     if (events->count(interface_key::SECONDSCROLL_UP) || events->count(interface_key::SECONDSCROLL_DOWN))
@@ -911,6 +960,21 @@ void viewscreen_unitlaborsst::render()
     Screen::paintString(Screen::Pen(' ', 7, 0), col_offsets[DISP_COLUMN_NAME], 2, "Name");
     Screen::paintString(Screen::Pen(' ', 7, 0), col_offsets[DISP_COLUMN_PROFESSION_OR_SQUAD], 2, show_squad ? "Squad" : "Profession");
     Screen::paintString(Screen::Pen(' ', 7, 0), col_offsets[DISP_COLUMN_DOING], 2, "Doing");
+    int squad_offset = 0;
+    for (it2 = dwarf_squads.begin(); it2 != dwarf_squads.end(); ++it2){
+        int col_offset = squad_offset + first_column;
+        int8_t fg = 1;
+        int8_t bg = 0;
+        if (col_offset == sel_column)
+        {
+            fg = 0;
+            bg = 7;
+        }
+        Screen::paintTile(Screen::Pen('S', fg, bg), col_offsets[DISP_COLUMN_SQUADS] + squad_offset, 1);
+        Screen::paintTile(Screen::Pen('S', fg, bg), col_offsets[DISP_COLUMN_SQUADS] + squad_offset, 2);
+        //Core::print(stl_sprintf("hey got 1 %d\n", col_offsets[DISP_COLUMN_LABORS] + squad_offset).c_str());
+        squad_offset++;
+    }
 
     for (int col = 0; col < col_widths[DISP_COLUMN_LABORS]; col++)
     {
@@ -929,6 +993,7 @@ void viewscreen_unitlaborsst::render()
 
         Screen::paintTile(Screen::Pen(columns[col_offset].label[0], fg, bg), col_offsets[DISP_COLUMN_LABORS] + col, 1);
         Screen::paintTile(Screen::Pen(columns[col_offset].label[1], fg, bg), col_offsets[DISP_COLUMN_LABORS] + col, 2);
+        //Core::print(stl_sprintf("hey got 1 %d\n", col_offsets[DISP_COLUMN_LABORS] + col + 4).c_str());
         df::profession profession = columns[col_offset].profession;
         if ((profession != profession::NONE) && (ui->race_id != -1))
         {
@@ -996,9 +1061,19 @@ void viewscreen_unitlaborsst::render()
         if(cur->unit->job.current_job != 0){
                 doing = ENUM_KEY_STR(job_type, cur->unit->job.current_job->job_type);
         }
-        //Core::print(stl_sprintf("%s %d \n", "turl", cur->unit->job.current_job->job_type).c_str());
         doing.resize(col_widths[DISP_COLUMN_DOING]);
         Screen::paintString(Screen::Pen(' ', fg, bg), col_offsets[DISP_COLUMN_DOING], 4 + row, doing);
+        int squad_index = 0;
+        for (it2 = dwarf_squads.begin(); it2 != dwarf_squads.end(); ++it2){
+            fg = 15;
+            bg = 0;
+            uint8_t c = 0xFA;
+            if(cur->unit->military.squad_id == (*it2)->id){
+                c = 0xFB;
+            }
+            Screen::paintTile(Screen::Pen(c, fg, bg), col_offsets[DISP_COLUMN_SQUADS] + squad_index, 4 + row);
+            squad_index++;
+        }
 
         // Print unit's skills and labor assignments
         for (int col = 0; col < col_widths[DISP_COLUMN_LABORS]; col++)
@@ -1024,10 +1099,9 @@ void viewscreen_unitlaborsst::render()
                 else
                     c = '-';
             } else {
+                // TODO: use max attribute value to properly make every fit into hex
                 string phys_attr = stl_sprintf("%x", Units::getPhysicalAttrValue(cur->unit, columns[col_offset].attr) / 200);
-                //Core::print(phys_attr.c_str());
                 c = phys_attr.c_str()[0];
-                // TODO:show some physical attributes
             }
             if (columns[col_offset].labor != unit_labor::NONE)
             {

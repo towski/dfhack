@@ -647,9 +647,10 @@ end
 
 -- maybe this is too strict, there is not really a reason why it can only be called from the status screen
 -- (other than the hotkey might overlap with other scripts)
-if (not string.match(dfhack.gui.getCurFocus(), '^overallstatus') and not string.match(dfhack.gui.getCurFocus(), '^pet/List/Unit')) then
-    qerror("This script must either be called from the overall status screen or the animal list screen.")
-end
+print(dfhack.gui.getCurFocus())
+-- if (not string.match(dfhack.gui.getCurFocus(), '^overallstatus') and not string.match(dfhack.gui.getCurFocus(), '^pet/List/Unit')) then
+--     qerror("This script must either be called from the overall status screen or the animal list screen.")
+-- end
 
 
 local screen = WatchList{ }

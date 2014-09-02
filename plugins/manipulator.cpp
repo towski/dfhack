@@ -277,7 +277,7 @@ enum altsort_mode {
     ALTSORT_MAX
 };
 
-altsort_mode old_altsort = ALTSORT_NAME; 
+altsort_mode old_altsort = ALTSORT_MAX; 
 int old_sel_column = 0;
 
 bool descending;
@@ -463,11 +463,13 @@ viewscreen_unitlaborsst::viewscreen_unitlaborsst(vector<df::unit*> &src, int cur
     sel_column = old_sel_column;
 
     refreshNames();
-    sortUnits(old_altsort);
-    if(old_altsort == ALTSORT_SKILL){
-        altsort = ALTSORT_NAME; 
-    } else {
-        altsort = old_altsort; 
+    if(old_altsort != ALTSORT_MAX){
+        sortUnits(old_altsort);
+        if(old_altsort == ALTSORT_SKILL){
+            altsort = ALTSORT_NAME; 
+        } else {
+            altsort = old_altsort; 
+        }
     }
 
     first_row = 0;

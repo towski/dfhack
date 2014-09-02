@@ -869,11 +869,14 @@ void viewscreen_unitlaborsst::feed(set<df::interface_key> *events)
 
     if (events->count(interface_key::SECONDSCROLL_UP) || events->count(interface_key::SECONDSCROLL_DOWN))
     {
-        descending = events->count(interface_key::SECONDSCROLL_UP);
-        sort_skill = columns[input_column].skill;
-        sort_attr = columns[input_column].attr;
-        sort_labor = columns[input_column].labor;
-        std::sort(units.begin(), units.end(), sortBySkill);
+        int actual_column = input_column - dwarf_squads.size();
+        if(actual_column >= 0){
+            descending = events->count(interface_key::SECONDSCROLL_UP);
+            sort_skill = columns[actual_column].skill;
+            sort_attr = columns[actual_column].attr;
+            sort_labor = columns[actual_column].labor;
+            std::sort(units.begin(), units.end(), sortBySkill);
+        }
     }
 
     if (events->count(interface_key::SECONDSCROLL_PAGEUP) || events->count(interface_key::SECONDSCROLL_PAGEDOWN))
@@ -961,6 +964,7 @@ void viewscreen_unitlaborsst::render()
     Screen::paintString(Screen::Pen(' ', 7, 0), col_offsets[DISP_COLUMN_PROFESSION_OR_SQUAD], 2, show_squad ? "Squad" : "Profession");
     Screen::paintString(Screen::Pen(' ', 7, 0), col_offsets[DISP_COLUMN_DOING], 2, "Doing");
     int squad_offset = 0;
+    int squad_count = dwarf_squads.size();
     for (it2 = dwarf_squads.begin(); it2 != dwarf_squads.end(); ++it2){
         int col_offset = squad_offset + first_column;
         int8_t fg = 1;
@@ -985,7 +989,7 @@ void viewscreen_unitlaborsst::render()
         int8_t fg = columns[col_offset].color;
         int8_t bg = 0;
 
-        if (col_offset == sel_column)
+        if (col_offset + squad_count == sel_column)
         {
             fg = 0;
             bg = 7;
@@ -1082,7 +1086,7 @@ void viewscreen_unitlaborsst::render()
             fg = 15;
             bg = 0;
             uint8_t c = 0xFA;
-            if ((col_offset == sel_column) && (row_offset == sel_row))
+            if ((col_offset + squad_count == sel_column) && (row_offset == sel_row))
                 fg = 9;
             if (columns[col_offset].skill != job_skill::NONE)
             {

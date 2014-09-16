@@ -44,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <istream>
 #include <string>
 #include <stdint.h>
-#include <functional>
 
 #include "RemoteTools.h"
 #include "PluginManager.h"

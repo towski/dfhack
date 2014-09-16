@@ -130,6 +130,13 @@ message SkillInfo {
     required int32 experience = 3;
 };
 
+message UnitThought {
+    required int32 type = 1;
+    required int32 severity = 2;
+    required int32 subtype = 3;
+    required int32 age = 4;
+};
+
 message UnitMiscTrait {
     required int32 id = 1;
     required int32 value = 2;
@@ -141,6 +148,8 @@ message BasicUnitInfo {
     required int32 pos_x = 13;
     required int32 pos_y = 14;
     required int32 pos_z = 15;
+
+    required int32 happiness = 28;
 
     optional NameInfo name = 2;
 
@@ -165,11 +174,17 @@ message BasicUnitInfo {
     optional int32 profession = 22 [default = -1];
     optional string custom_profession = 23;
 
+    optional string thought_string = 25;
+    optional string profession_name = 26;
+    optional string current_job = 27;
+
     // IF mask.labors:
     repeated int32 labors = 11;
 
     // IF mask.skills:
     repeated SkillInfo skills = 12;
+    
+    repeated UnitThought recent_events = 29;
 
     // IF mask.misc_traits:
     repeated UnitMiscTrait misc_traits = 24;

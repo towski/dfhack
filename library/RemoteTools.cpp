@@ -44,6 +44,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <istream>
 #include <string>
 #include <stdint.h>
+#include <functional>
 
 #include "RemoteTools.h"
 #include "PluginManager.h"
@@ -63,10 +64,13 @@ POSSIBILITY OF SUCH DAMAGE.
 #include "df/world.h"
 #include "df/world_data.h"
 #include "df/unit.h"
+#include "df/unit_thought.h"
+#include "df/unit_relationship_type.h"
 #include "df/unit_misc_trait.h"
 #include "df/unit_soul.h"
 #include "df/unit_skill.h"
 #include "df/material.h"
+#include "df/job.h"
 #include "df/matter_state.h"
 #include "df/inorganic_raw.h"
 #include "df/creature_raw.h"
@@ -111,6 +115,21 @@ void DFHack::describeEnum(RepeatedPtrField<EnumItemName> *pf, int base,
         auto item = pf->Add();
         item->set_value(base+i);
         item->set_name(key);
+    }
+}
+
+void describeEnumAttr(RepeatedPtrField<EnumItemName> *pf)
+{
+    const df::enum_traits<df::unit_thought_type>::attr_entry_type *table = df::enum_traits<df::unit_thought_type>::attr_table;
+    for (int i = 0; i < 225; i++)
+    {
+        const df::enum_traits<df::unit_thought_type>::attr_entry_type *key = &table[i];
+        if (!key)
+            continue;
+
+        auto item = pf->Add();
+        item->set_value(i);
+        item->set_name(key->caption);
     }
 }
 
@@ -262,6 +281,8 @@ void DFHack::describeUnit(BasicUnitInfo *info, df::unit *unit,
     info->set_pos_y(unit->pos.y);
     info->set_pos_z(unit->pos.z);
 
+    info->set_happiness(unit->status.happiness);
+
     auto name = Units::getVisibleName(unit);
     if (name->has_name)
         describeName(info->mutable_name(), name);
@@ -273,12 +294,26 @@ void DFHack::describeUnit(BasicUnitInfo *info, df::unit *unit,
     info->set_race(unit->race);
     info->set_caste(unit->caste);
 
+    auto &vec = unit -> status.recent_events;
+
+    for (size_t i = 0; i < vec.size(); i++)
+    {
+        auto event = vec[i];
+        auto item = info->add_recent_events();
+        item->set_type(event->type);
+        item->set_age(event->age);
+        item->set_severity(event->severity);
+        item->set_subtype(event->subtype);
+    }
+
     if (unit->sex >= 0)
         info->set_gender(unit->sex);
     if (unit->civ_id >= 0)
         info->set_civ_id(unit->civ_id);
     if (unit->hist_figure_id >= 0)
         info->set_histfig_id(unit->hist_figure_id);
+    if (unit->job.current_job != 0 && unit->job.current_job->job_type >= 0)
+        info->set_current_job(ENUM_KEY_STR(job_type, unit->job.current_job->job_type));
 
     if (unit->counters.death_id >= 0)
     {
@@ -291,6 +326,7 @@ void DFHack::describeUnit(BasicUnitInfo *info, df::unit *unit,
     {
         if (unit->profession >= (df::profession)0)
             info->set_profession(unit->profession);
+            info->set_profession_name(ENUM_ATTR_STR(profession, caption, (df::profession)unit->profession));
         if (!unit->custom_profession.empty())
             info->set_custom_profession(unit->custom_profession);
 
@@ -458,6 +494,9 @@ static command_result ListEnums(color_ostream &stream,
     describe_bitfield<df::incident::T_flags>(out->mutable_death_info_flags());
 
     ENUM(profession);
+    ENUM(building_type);
+    ENUM(unit_relationship_type);
+    describeEnumAttr(out->mutable_unit_thought_type());
 
     return CR_OK;
 #undef ENUM

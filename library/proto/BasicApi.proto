@@ -49,6 +49,9 @@ message ListEnumsOut {
     repeated EnumItemName death_info_flags = 10;
 
     repeated EnumItemName profession = 11;
+    repeated EnumItemName unit_thought_type = 12;
+    repeated EnumItemName building_type = 13;
+    repeated EnumItemName unit_relationship_type = 14;
 };
 
 // RPC ListJobSkills : EmptyMessage -> ListJobSkillsOut
